@@ -68,6 +68,7 @@ const app = express();
 const port = 3000;
 
 let dispatchResponse = null;
+let expoPushToken = null;
 
 app.use(cors({
   origin: '*',
@@ -76,14 +77,36 @@ app.use(cors({
 
 app.use(bodyParser.json());
 
+
+// Endpoint to register the token
+app.post('/register-token', (req, res) => {
+  const { token } = req.body;
+
+  if (!Expo.isExpoPushToken(token)) {
+    return res.status(400).send('Invalid Expo push token');
+  }
+
+  // Store the token if it doesn't exist already
+  if (!expoPushToken.includes(token)) {
+    expoPushToken = token;
+  }
+
+  res.status(200).send('Token registered successfully');
+});
+
+// Endpoint to retrieve all tokens (for demonstration purposes)
+app.get('/tokens', (req, res) => {
+  res.json({ tokens: expoPushToken });
+});
+
 app.post('/send-notification', async (req, res) => {
   const { to, title, body, data } = req.body;
-
+  
   if (!Expo.isExpoPushToken(to)) {
     console.error(`Push token ${to} is not a valid Expo push token`);
     return res.status(400).send('Invalid Expo push token');
   }
-
+  
   let messages = [{
     to,
     sound: 'default',
@@ -91,11 +114,11 @@ app.post('/send-notification', async (req, res) => {
     body,
     data,
   }];
-
+  
   try {
     let chunks = expo.chunkPushNotifications(messages);
     let tickets = [];
-
+    
     for (let chunk of chunks) {
       try {
         let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
@@ -105,7 +128,7 @@ app.post('/send-notification', async (req, res) => {
         console.error(error);
       }
     }
-
+    
     res.json(tickets);
   } catch (error) {
     console.error('Error sending push notification:', error);
@@ -127,6 +150,7 @@ app.get('/dispatch-response', (req, res) => {
 app.get('/', (req, res) => {
   res.send('Server is running');
 });
+
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
