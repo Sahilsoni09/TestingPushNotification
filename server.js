@@ -68,7 +68,7 @@ const app = express();
 const port = 3000;
 
 let dispatchResponse = null;
-let expoPushToken = null;
+let expoPushToken = ' ';
 
 app.use(cors({
   origin: '*',
